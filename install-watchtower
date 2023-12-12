@@ -1,5 +1,10 @@
 #!/bin/sh
 
+echo
+echo "==================================="
+echo " Witnesschain WatchTower installer"
+echo "==================================="
+
 if [ -f watchtower.config.json ]
 then
 	private_key=`cat watchtower.config.json  | grep private_key | cut -f4 -d'"'`
@@ -24,20 +29,50 @@ then
 
 	./docker-run.sh
 else
-	curl https://raw.githubusercontent.com/kaleidoscope-blockchain/config/main/watchtower.json > watchtower.config.json 2>/dev/null 
+	curl https://raw.githubusercontent.com/kaleidoscope-blockchain/config/main/watchtower.json > watchtower.config.json 2>/dev/null
+
+	if [ ! -s "watchtower.config.json" ]
+	then
+		echo
+		echo "\x1B[31m===> ❌\x1B[0m The file 'watchtower.config.json' could not be downloaded"
+		echo
+		exit
+	fi
+
 	echo
-	echo "\x1B[32m===>\x1B[0m Downloaded the 'watchtower.config.json'"
-	echo 
-	echo "\x1B[37m===>\x1B[0m Please edit the follwing parameters in it:"
+	echo "\x1B[32m===> ✅\x1B[0m Downloaded the 'watchtower.config.json'"
+	echo
+	echo "\x1B[37m===>\x1B[0m Edit the following parameters in 'watchtower.config.json':"
 	echo "\t1. private_key"
 	echo "\t3. goerli_websocket_url"
-	echo "\t4. host_name                    (optional)"
-	echo "\t5. watchtower_failure_alert_url (optional)"
+	echo "\t4. host_name                    (optional but recommended for dashboard support)"
+	echo "\t5. watchtower_failure_alert_url (optional but recommended for getting error notification)"
 	echo
+
+	which docker 1>/dev/null 2>/dev/null
+
+	if [ "$?" != "0" ]
+	then
+		echo
+		echo "\x1B[31m===>\x1B[0m Please install the 'docker' engine"
+		echo
+	fi
+
+	user_in_docker_group=`groups $USER | grep docker | wc -l`
+
+	if [ "$user_in_docker_group" -eq "0" ]
+	then
+		echo "\x1B[37m===>\x1B[0m As root user (after installing docker):"
+		echo "\t 1. Create and add a 'docker' group"
+		echo "\t 2. And add the user '$USER' to the group"
+		echo
+	fi
+
 	echo "\x1B[37m===>\x1B[0m And then run './docker-run.sh'"
+
 	echo
 	echo '#!/bin/sh' > docker-run.sh
-	echo docker run -v watchtower.config.json:/watchtower/config.json --network host --name watchtower witnesschain/watchtower >> docker-run.sh
+	echo docker run -v ./watchtower.config.json:/watchtower/config.json --network host --name watchtower witnesschain/watchtower >> docker-run.sh
 
 	chmod +x docker-run.sh
 fi
